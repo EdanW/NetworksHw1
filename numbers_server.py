@@ -7,7 +7,7 @@ import sys
 
 
 def print_login_message(client_socket):
-    message = 'Welcome! Please log in'
+    message = 'Welcome! Please log in$'
     client_socket.send(message.encode())
 
 def command_handler(conn_socket, message):

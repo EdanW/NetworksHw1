@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import math
+import socket
 from socket import *
 import select
 import sys
 
 
 def print_login_message(client_socket):
-    message = 'Welcome! Please log in'
+    message = 'Welcome! Please log in$'
     client_socket.send(message.encode())
 
 def command_handler(conn_socket, message):
@@ -139,73 +140,73 @@ def start_server():
     logged_in_users_sockets_list = []
 
     #creats new socket
-    server_socket = socket(family=AF_INET, type=SOCK_STREAM)
-    server_socket.bind((HOST, PORT))
-    server_socket.listen()
+    with  socket.socket(family=AF_INET, type=SOCK_STREAM) as server_socket:
+        server_socket.bind((HOST, PORT))
+        server_socket.listen()
 
-    # Step 5: Use lists to keep track of sockets
-    sockets_list.append(server_socket) # List of all connected sockets
+        # Step 5: Use lists to keep track of sockets
+        sockets_list.append(server_socket) # List of all connected sockets
 
-    # Step 6: Main loop to handle multiple clients
-    while True:
-        # Step 7: Use `select` to wait for socket events
-        read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
+        # Step 6: Main loop to handle multiple clients
+        while True:
+            # Step 7: Use `select` to wait for socket events
+            read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
 
-        # Step 8: Iterate over readable sockets
-        for active_socket in read_sockets:
-            # Step 9: If it's the server socket, accept a new connection
-            if active_socket == server_socket:
-                client_socket, client_address = server_socket.accept()
-                sockets_list.append(client_socket)
-                clients[client_socket] = client_address
-                print_login_message(client_socket)
+            # Step 8: Iterate over readable sockets
+            for active_socket in read_sockets:
+                # Step 9: If it's the server socket, accept a new connection
+                if active_socket == server_socket:
+                    client_socket, client_address = server_socket.accept()
+                    sockets_list.append(client_socket)
+                    clients[client_socket] = client_address
+                    print_login_message(client_socket)
 
-            # Step 10: Otherwise, it's an existing client socket with data
-            else:
-                #gets the address of the active socket for dictionary searches
-                client_address = clients[active_socket]
+                # Step 10: Otherwise, it's an existing client socket with data
+                else:
+                    #gets the address of the active socket for dictionary searches
+                    client_address = clients[active_socket]
 
-                if client_address not in clients_messages:
-                    clients_messages[client_address]=""
-                clients_messages[client_address] += active_socket.recv(1024)
+                    if client_address not in clients_messages:
+                        clients_messages[client_address]=""
+                    clients_messages[client_address] += active_socket.recv(1024)
 
-                message_builder = clients_messages[client_address].decode("utf-8")
+                    message_builder = clients_messages[client_address].decode("utf-8")
 
-                #check if we got the full message
-                if message_builder[-1] == "$":
-                    # Step 10.5 if you're not logged in, do so. if you don't i kick u
-                    if active_socket not in logged_in_users_sockets_list:
+                    #check if we got the full message
+                    if message_builder[-1] == "$":
+                        # Step 10.5 if you're not logged in, do so. if you don't i kick u
+                        if active_socket not in logged_in_users_sockets_list:
 
-                        username, password = proccess_login_data(message_builder)
+                            username, password = proccess_login_data(message_builder)
 
-                        if username in known_users_dict and known_users_dict[username] == password:
-                            logged_in_users_sockets_list.append(active_socket)
+                            if username in known_users_dict and known_users_dict[username] == password:
+                                logged_in_users_sockets_list.append(active_socket)
+                            else:
+                                #the user can try again so no need to close the socket
+                                active_socket.send("Failed to login.$".encode("utf-8"))
+                            continue
+
+                        # Step 13: you're logged in, so you probably sent us some command
                         else:
-                            #the user can try again so no need to close the socket
-                            active_socket.send("Failed to login.".encode("utf-8"))
-                        continue
+                            #handle this case first because it requires removing stuff from data structures
+                            if message_builder == 'quit$':
+                                send_invalid_input_error(active_socket)
+                                clients_messages.pop(client_address)
+                                logged_in_users_sockets_list.remove(active_socket)
+                                clients.pop(active_socket)
+                                disconnect_socket(active_socket)
 
-                    # Step 13: you're logged in, so you probably sent us some command
-                    else:
-                        #handle this case first because it requires removing stuff from data structures
-                        if message_builder[:-2] == 'quit':
-                            send_invalid_input_error(active_socket)
-                            clients_messages.pop(client_address)
-                            logged_in_users_sockets_list.remove(active_socket)
-                            clients.pop(active_socket)
-                            disconnect_socket(active_socket)
+                            message_to_send = command_handler(active_socket, message_builder)+'$'
+                            active_socket.send(message_to_send.encode("utf-8"))
 
-                        message_to_send = command_handler(active_socket, message_builder)
-                        active_socket.send(message_to_send.encode("utf-8"))
-
-                    #ready for new command
-                    clients_messages[client_address] = ""
+                        #ready for new command
+                        clients_messages[client_address] = ""
 
 
 
-                    # Step 14: Handle any exceptional conditions on sockets
-        for active_socket in exception_sockets:
-            disconnect_socket(active_socket)
+                        # Step 14: Handle any exceptional conditions on sockets
+            for active_socket in exception_sockets:
+                disconnect_socket(active_socket)
 
 
 

@@ -7,7 +7,7 @@ import sys
 
 
 def print_login_message(client_socket):
-    message = 'Welcome! Please log in$'
+    message = 'Welcome! Please log in\t'
     client_socket.send(message.encode())
 
 
@@ -15,23 +15,15 @@ def command_handler(conn_socket, message):
     data = message.split(':')[0]
     command = data[0]
     expression = data[1]
-    print(message, command)
     if command == 'max:':
-        print('max')
         return maximum(expression)
     elif command == 'calculate:':
-        print('calc')
         return  calculate(expression)
     elif command == 'factors:':
-        print('factors')
         return get_prime_factors(expression)
-    elif command == 'quit':
-        return 'quit'
+    else:
+        return "error: command not found"
 
-
-def send_invalid_input_error(conn_socket):
-    print(conn_socket)
-    # todo write this func (send to conn_socket the message via send_all?)
 
 
 def disconnect_socket(conn_socket):
@@ -49,22 +41,23 @@ def calculate(expression):
     #converts the numbers from string to int
     expr_arr[0] = int(expr_arr[0])
     expr_arr[2] = int(expr_arr[2])
-
+    result = 0
     if expression[1] == "+":
-            return  str(expr_arr[0] + expr_arr[2])
+            result = expr_arr[0] + expr_arr[2]
     elif expression[1] == "-":
-            return str(expr_arr[0] - expr_arr[2])
+            result = expr_arr[0] - expr_arr[2]
     elif expression[1] == "*":
-            return  str(expr_arr[0] * expr_arr[2])
+            result = expr_arr[0] * expr_arr[2]
     elif  expression[1] == "/":
-            return  str(expr_arr[0] / expr_arr[2])
+            result = round(expr_arr[0] / expr_arr[2], 2)
     elif expression[1] == "^":
-            return str(math.pow(expr_arr[0],expr_arr[2]))
+            result = math.pow(expr_arr[0],expr_arr[2])
+    return "response: " + str(result) + "." if (INT32_MAX >= result or result>=INT32_MIN) else "error: result is too big"
 
 
 def maximum(numbers):
     numbers_arr = [int(x) for x in numbers.split(" ")]
-    return str(max(numbers_arr))
+    return "the maximum is: " + str(max(numbers_arr)) +"."
 
 
 def is_prime(n):
@@ -79,7 +72,6 @@ def is_prime(n):
     for i in range(3, int(n ** 0.5) + 1, 2):
         if n % i == 0:
             return False
-
     return True
 
 
@@ -99,7 +91,7 @@ def get_prime_factors(n):
                 factors.add(i)
             n //= i
 
-    return str(factors)
+    return "the prime factors of " + n + " are: " + str(factors) + "."
 
 
 def process_file(file_name, users_dic):
@@ -117,16 +109,40 @@ def process_file(file_name, users_dic):
 def process_login_data(login_info):
     """
     read login info and return a tuple of username and password
+    param: login_info, string. in the format "<username>\n<password>\t"
     """
-    #todo decide in which format the client send us the information so we'll
-    # know how to break and use it
-    return None
+    user_details = login_info[:-1].split("\n")
+    return user_details[0],user_details[1]
 
+
+def close_connection(active_socket, client_address,logged_in_users_sockets_list):
+    clients_messages.pop(client_address)
+    logged_in_users_sockets_list.remove(active_socket)
+    clients.pop(active_socket)
+    disconnect_socket(active_socket)
+
+def accept_socket(server_socket):
+    client_socket, client_address = server_socket.accept()
+    sockets_list.append(client_socket)
+    clients[client_socket] = client_address
+    print_login_message(client_socket)
+
+def handle_new_user(user_info, active_socket, known_users_dict, logged_in_users_sockets_list):
+    username, password = process_login_data(user_info)
+
+    if username in known_users_dict and known_users_dict[username] == password:
+        logged_in_users_sockets_list.append(active_socket)
+        active_socket.send("Hi " + username + ", goot to see you.\t".encode("utf-8"))
+    else:
+        # the user can try again so no need to close the socket
+        active_socket.send("Failed to login.\t".encode("utf-8"))
 
 # Global vars
 sockets_list = []
 clients = {}  # Dictionary to keep track of client addresses
 clients_messages = {}
+INT32_MIN = -2_147_483_648
+INT32_MAX = 2_147_483_647
 
 
 def start_server():
@@ -162,55 +178,43 @@ def start_server():
             for active_socket in read_sockets:
                 # Step 9: If it's the server socket, accept a new connection
                 if active_socket == server_socket:
-                    client_socket, client_address = server_socket.accept()
-                    sockets_list.append(client_socket)
-                    clients[client_socket] = client_address
-                    print_login_message(client_socket)
+                    accept_socket(server_socket)
 
                 # Step 10: Otherwise, it's an existing client socket with data
                 else:
                     # gets the address of the active socket for dictionary searches
                     client_address = clients[active_socket]
 
+                    #recive packet
                     if client_address not in clients_messages:
                         clients_messages[client_address]=""
                     clients_messages[client_address] += active_socket.recv(1024)
-
                     message_builder = clients_messages[client_address].decode("utf-8")
 
                     # check if we got the full message
-                    if message_builder[-1] == "$":
+                    if message_builder[-1] == "\t":
                         # Step 10.5 if you're not logged in, do so. if you don't i kick u
                         if active_socket not in logged_in_users_sockets_list:
-
-                            username, password = process_login_data(message_builder)
-
-                            if username in known_users_dict and known_users_dict[username] == password:
-                                logged_in_users_sockets_list.append(active_socket)
-                            else:
-                                # the user can try again so no need to close the socket
-                                active_socket.send("Failed to login.$".encode("utf-8"))
+                            handle_new_user(message_builder, active_socket, known_users_dict, logged_in_users_sockets_list)
                             continue
 
                         # Step 13: you're logged in, so you probably sent us some command
                         else:
                             # handle this case first because it requires removing stuff from data structures
-                            if message_builder == 'quit$':
-                                send_invalid_input_error(active_socket)
-                                clients_messages.pop(client_address)
-                                logged_in_users_sockets_list.remove(active_socket)
-                                clients.pop(active_socket)
-                                disconnect_socket(active_socket)
+                            if message_builder == 'quit\t':
+                                close_connection(active_socket, client_address,logged_in_users_sockets_list)
+                                continue
 
-                            message_to_send = command_handler(active_socket, message_builder)+'$'
+                            message_to_send = command_handler(active_socket, message_builder)+'\t'
                             active_socket.send(message_to_send.encode("utf-8"))
+                            #an error has occurred
+                            if message_to_send[:5] == "error":
+                                close_connection(active_socket, client_address, logged_in_users_sockets_list)
+                                continue
 
                         # ready for new command
                         clients_messages[client_address] = ""
 
-                        # Step 14: Handle any exceptional conditions on sockets
-            for active_socket in exception_sockets:
-                disconnect_socket(active_socket)
 
 
 if __name__ == "__main__":

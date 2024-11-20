@@ -10,6 +10,7 @@ def print_login_message(client_socket):
     message = 'Welcome! Please log in$'
     client_socket.send(message.encode())
 
+
 def command_handler(conn_socket, message):
     data = message.split(':')[0]
     command = data[0]
@@ -27,14 +28,17 @@ def command_handler(conn_socket, message):
     elif command == 'quit':
         return 'quit'
 
+
 def send_invalid_input_error(conn_socket):
     print(conn_socket)
     # todo write this func (send to conn_socket the message via send_all?)
+
 
 def disconnect_socket(conn_socket):
     sockets_list.remove(conn_socket)
     del clients[conn_socket]
     conn_socket.close()
+
 
 def calculate(expression):
     """
@@ -109,7 +113,8 @@ def process_file(file_name, users_dic):
         print('error in processing file')
         exit(1)
 
-def proccess_login_data(login_info):
+
+def process_login_data(login_info):
     """
     read login info and return a tuple of username and password
     """
@@ -123,6 +128,7 @@ sockets_list = []
 clients = {}  # Dictionary to keep track of client addresses
 clients_messages = {}
 
+
 def start_server():
     # Server Configuration
     HOST = '127.0.0.1'  # Localhost
@@ -133,14 +139,14 @@ def start_server():
     if len(sys.argv) == 2:
         PORT = sys.argv[2]
     file_path = sys.argv[1]
-    #loads all the users information to a dictionary
+    # loads all the users information to a dictionary
     known_users_dict = {}
     process_file(file_path,known_users_dict)
 
     logged_in_users_sockets_list = []
 
-    #creats new socket
-    with  socket.socket(family=AF_INET, type=SOCK_STREAM) as server_socket:
+    # creats new socket
+    with socket.socket(family=AF_INET, type=SOCK_STREAM) as server_socket:
         server_socket.bind((HOST, PORT))
         server_socket.listen()
 
@@ -163,7 +169,7 @@ def start_server():
 
                 # Step 10: Otherwise, it's an existing client socket with data
                 else:
-                    #gets the address of the active socket for dictionary searches
+                    # gets the address of the active socket for dictionary searches
                     client_address = clients[active_socket]
 
                     if client_address not in clients_messages:
@@ -172,23 +178,23 @@ def start_server():
 
                     message_builder = clients_messages[client_address].decode("utf-8")
 
-                    #check if we got the full message
+                    # check if we got the full message
                     if message_builder[-1] == "$":
                         # Step 10.5 if you're not logged in, do so. if you don't i kick u
                         if active_socket not in logged_in_users_sockets_list:
 
-                            username, password = proccess_login_data(message_builder)
+                            username, password = process_login_data(message_builder)
 
                             if username in known_users_dict and known_users_dict[username] == password:
                                 logged_in_users_sockets_list.append(active_socket)
                             else:
-                                #the user can try again so no need to close the socket
+                                # the user can try again so no need to close the socket
                                 active_socket.send("Failed to login.$".encode("utf-8"))
                             continue
 
                         # Step 13: you're logged in, so you probably sent us some command
                         else:
-                            #handle this case first because it requires removing stuff from data structures
+                            # handle this case first because it requires removing stuff from data structures
                             if message_builder == 'quit$':
                                 send_invalid_input_error(active_socket)
                                 clients_messages.pop(client_address)
@@ -199,16 +205,12 @@ def start_server():
                             message_to_send = command_handler(active_socket, message_builder)+'$'
                             active_socket.send(message_to_send.encode("utf-8"))
 
-                        #ready for new command
+                        # ready for new command
                         clients_messages[client_address] = ""
-
-
 
                         # Step 14: Handle any exceptional conditions on sockets
             for active_socket in exception_sockets:
                 disconnect_socket(active_socket)
-
-
 
 
 if __name__ == "__main__":

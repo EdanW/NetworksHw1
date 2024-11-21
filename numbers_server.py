@@ -11,15 +11,15 @@ def print_login_message(client_socket):
     client_socket.send(message.encode())
 
 
-def command_handler(conn_socket, message):
-    data = message.split(':')[0]
+def command_handler(message):
+    data = message[:-1].split(':')
     command = data[0]
     expression = data[1]
-    if command == 'm:':
+    if command == 'm':
         return maximum(expression)
-    elif command == 'c:':
+    elif command == 'c':
         return  calculate(expression)
-    elif command == 'f:':
+    elif command == 'f':
         return get_prime_factors(expression)
     else:
         return "error: command not found"
@@ -28,7 +28,7 @@ def command_handler(conn_socket, message):
 
 def disconnect_socket(conn_socket):
     sockets_list.remove(conn_socket)
-    del clients[conn_socket]
+    clients.pop(conn_socket)
     conn_socket.close()
 
 
@@ -42,17 +42,20 @@ def calculate(expression):
     expr_arr[0] = int(expr_arr[0])
     expr_arr[2] = int(expr_arr[2])
     result = 0
-    if expression[1] == "+":
+    if expr_arr[1] == "+":
             result = expr_arr[0] + expr_arr[2]
-    elif expression[1] == "-":
+    elif expr_arr[1] == "-":
             result = expr_arr[0] - expr_arr[2]
-    elif expression[1] == "*":
+    elif expr_arr[1] == "*":
             result = expr_arr[0] * expr_arr[2]
-    elif  expression[1] == "/":
+    elif  expr_arr[1] == "/":
             result = round(expr_arr[0] / expr_arr[2], 2)
-    elif expression[1] == "^":
-            result = math.pow(expr_arr[0],expr_arr[2])
-    return str(result) if (INT32_MAX >= result or result>=INT32_MIN) else "error: result is too big"
+    elif expr_arr[1] == "^":
+            try:
+                result = math.pow(expr_arr[0],expr_arr[2])
+            except ValueError:
+                return "error: result is too big"
+    return str(result) if (INT32_MAX >= result >= INT32_MIN) else "error: result is too big"
 
 
 def maximum(numbers):
@@ -79,6 +82,7 @@ def get_prime_factors(n):
     """
     returns a set of all the prime factors of n
     """
+    n = int(n.strip())
     factors = set()
 
     while n % 2 == 0:
@@ -91,7 +95,7 @@ def get_prime_factors(n):
                 factors.add(i)
             n //= i
 
-    return  str(factors)
+    return  str(sorted(factors))
 
 
 def process_file(file_name, users_dic):
@@ -129,10 +133,9 @@ def accept_socket(server_socket):
 
 def handle_new_user(user_info, active_socket, known_users_dict, logged_in_users_sockets_list):
     username, password = process_login_data(user_info)
-
     if username in known_users_dict and known_users_dict[username] == password:
         logged_in_users_sockets_list.append(active_socket)
-        active_socket.send("Hi " + username + ", good to see you.\t".encode("utf-8"))
+        active_socket.send(f"Hi {username}, good to see you\t".encode("utf-8"))
     else:
         # the user can try again so no need to close the socket
         active_socket.send("Failed to login.\t".encode("utf-8"))
@@ -152,7 +155,7 @@ def start_server():
     if len(sys.argv) > 3 or len(sys.argv) == 1:
         print('invalid number of arguments passed')
         exit(1)
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         PORT = sys.argv[2]
     file_path = sys.argv[1]
     # loads all the users information to a dictionary
@@ -162,7 +165,7 @@ def start_server():
     logged_in_users_sockets_list = []
 
     # creats new socket
-    with socket.socket(family=AF_INET, type=SOCK_STREAM) as server_socket:
+    with socket(family=AF_INET, type=SOCK_STREAM) as server_socket:
         server_socket.bind((HOST, PORT))
         server_socket.listen()
 
@@ -188,11 +191,12 @@ def start_server():
                     #recive packet
                     if client_address not in clients_messages:
                         clients_messages[client_address]=""
-                    clients_messages[client_address] += active_socket.recv(1024)
-                    message_builder = clients_messages[client_address].decode("utf-8")
-
+                    clients_messages[client_address] += active_socket.recv(1024).decode("utf-8")
+                    message_builder = clients_messages[client_address]
                     # check if we got the full message
-                    if message_builder[-1] == "\t":
+                    if message_builder != "" and message_builder[-1] == "\t":
+                        # ready for new command
+                        clients_messages[client_address] = ""
                         # Step 10.5 if you're not logged in, do so. if you don't i kick u
                         if active_socket not in logged_in_users_sockets_list:
                             handle_new_user(message_builder, active_socket, known_users_dict, logged_in_users_sockets_list)
@@ -201,11 +205,10 @@ def start_server():
                         # Step 13: you're logged in, so you probably sent us some command
                         else:
                             # handle this case first because it requires removing stuff from data structures
-                            if message_builder == 'quit\t':
+                            if message_builder == 'q\t':
                                 close_connection(active_socket, client_address,logged_in_users_sockets_list)
                                 continue
-
-                            message_to_send = command_handler(active_socket, message_builder)
+                            message_to_send = command_handler(message_builder)
                             active_socket.send((message_to_send+"\t").encode("utf-8"))
                             #an error has occurred
                             if message_to_send[:5] == "error":

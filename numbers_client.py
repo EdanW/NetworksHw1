@@ -54,18 +54,18 @@ def validate_hostname(hostname):
 def validate_port(port):
     """
        Validates if the port is a valid integer and within the range 0–65535.
-       Returns a tuple (True, None) for valid ports or (False, error_message) for invalid ports.
+       Returns an empty string for valid ports or error_message for invalid ports.
     """
     try:
         # Convert the port to an integer
         port = int(port)
         # Check if it's within the valid range
         if 0 <= port <= 65535:
-            return True, None
+            return ""
         else:
-            return False, "error: port number must be between 0 and 65535."
+            return "error: port number must be between 0 and 65535."
     except ValueError:
-        return False, "error: port number must be an integer."
+        return "error: port number must be an integer."
 
 def validate_int(num):
     """
@@ -160,8 +160,8 @@ def start_client():
             exit(1)
         if len(sys.argv) == 3:
             PORT = sys.argv[2]
-            if not validate_port(PORT)[0]:
-                print(validate_port(PORT)[1])
+            if not validate_port(PORT):
+                print(validate_port(PORT))
                 exit(1)
 
 

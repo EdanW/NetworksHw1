@@ -7,7 +7,7 @@ import sys
 
 
 def print_login_message(client_socket):
-    message = 'Welcome! Please log in\t'
+    message = 'Welcome! Please log in.\t'
     client_socket.send(message.encode())
 
 
@@ -15,11 +15,11 @@ def command_handler(conn_socket, message):
     data = message.split(':')[0]
     command = data[0]
     expression = data[1]
-    if command == 'max:':
+    if command == 'm:':
         return maximum(expression)
-    elif command == 'calculate:':
+    elif command == 'c:':
         return  calculate(expression)
-    elif command == 'factors:':
+    elif command == 'f:':
         return get_prime_factors(expression)
     else:
         return "error: command not found"
@@ -52,12 +52,12 @@ def calculate(expression):
             result = round(expr_arr[0] / expr_arr[2], 2)
     elif expression[1] == "^":
             result = math.pow(expr_arr[0],expr_arr[2])
-    return "response: " + str(result) + "." if (INT32_MAX >= result or result>=INT32_MIN) else "error: result is too big"
+    return str(result) if (INT32_MAX >= result or result>=INT32_MIN) else "error: result is too big"
 
 
 def maximum(numbers):
     numbers_arr = [int(x) for x in numbers.split(" ")]
-    return "the maximum is: " + str(max(numbers_arr)) +"."
+    return str(max(numbers_arr))
 
 
 def is_prime(n):
@@ -91,7 +91,7 @@ def get_prime_factors(n):
                 factors.add(i)
             n //= i
 
-    return "the prime factors of " + n + " are: " + str(factors) + "."
+    return  str(factors)
 
 
 def process_file(file_name, users_dic):
@@ -132,7 +132,7 @@ def handle_new_user(user_info, active_socket, known_users_dict, logged_in_users_
 
     if username in known_users_dict and known_users_dict[username] == password:
         logged_in_users_sockets_list.append(active_socket)
-        active_socket.send("Hi " + username + ", goot to see you.\t".encode("utf-8"))
+        active_socket.send("Hi " + username + ", good to see you.\t".encode("utf-8"))
     else:
         # the user can try again so no need to close the socket
         active_socket.send("Failed to login.\t".encode("utf-8"))
@@ -205,8 +205,8 @@ def start_server():
                                 close_connection(active_socket, client_address,logged_in_users_sockets_list)
                                 continue
 
-                            message_to_send = command_handler(active_socket, message_builder)+'\t'
-                            active_socket.send(message_to_send.encode("utf-8"))
+                            message_to_send = command_handler(active_socket, message_builder)
+                            active_socket.send((message_to_send+"\t").encode("utf-8"))
                             #an error has occurred
                             if message_to_send[:5] == "error":
                                 close_connection(active_socket, client_address, logged_in_users_sockets_list)

@@ -59,6 +59,7 @@ def calculate(expression):
 
 
 def maximum(numbers):
+    numbers = numbers.replace('(', '').replace(')', '')
     numbers_arr = [int(x) for x in numbers.split(" ")]
     return str(max(numbers_arr))
 
@@ -95,7 +96,11 @@ def get_prime_factors(n):
                 factors.add(i)
             n //= i
 
-    return  str(sorted(factors))
+    res = ""
+    for fac in sorted(factors):
+        res += str(fac) + " "
+
+    return  res[:-1]
 
 
 def process_file(file_name, users_dic):
@@ -108,7 +113,6 @@ def process_file(file_name, users_dic):
     except:
         print('error in processing file')
         exit(1)
-
 
 def process_login_data(login_info):
     """
@@ -156,7 +160,7 @@ def start_server():
         print('invalid number of arguments passed')
         exit(1)
     if len(sys.argv) == 3:
-        PORT = sys.argv[2]
+        PORT = int(sys.argv[2])
     file_path = sys.argv[1]
     # loads all the users information to a dictionary
     known_users_dict = {}
@@ -164,14 +168,14 @@ def start_server():
 
     logged_in_users_sockets_list = []
 
-    # creats new socket
+    # creates new socket
     with socket(family=AF_INET, type=SOCK_STREAM) as server_socket:
         server_socket.bind((HOST, PORT))
         server_socket.listen()
 
         # Step 5: Use lists to keep track of sockets
         sockets_list.append(server_socket) # List of all connected sockets
-
+        print('server is up')
         # Step 6: Main loop to handle multiple clients
         while True:
             # Step 7: Use `select` to wait for socket events

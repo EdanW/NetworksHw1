@@ -4,8 +4,6 @@ import re
 from socket import *
 import sys
 
-from numbers_server import disconnect_socket
-
 #globals
 INT32_MIN = -2_147_483_648
 INT32_MAX = 2_147_483_647

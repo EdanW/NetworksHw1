@@ -28,7 +28,6 @@ def command_handler(message):
 
 def disconnect_socket(conn_socket):
     sockets_list.remove(conn_socket)
-    clients.pop(conn_socket)
     conn_socket.close()
 
 

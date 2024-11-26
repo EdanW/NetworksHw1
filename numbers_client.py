@@ -4,7 +4,6 @@ import re
 from socket import *
 import sys
 
-
 #globals
 INT32_MIN = -2_147_483_648
 INT32_MAX = 2_147_483_647
@@ -47,25 +46,26 @@ def validate_hostname(hostname):
     # Validate if it's a domain name
     # RFC 1034/1035-compliant hostname regex
     domain_regex = re.compile(r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,6})+$')
-    if domain_regex.match(hostname):
+    if domain_regex.match(hostname) or hostname == 'localhost':
         return True  # It's a valid domain name
     return False
 
 def validate_port(port):
     """
        Validates if the port is a valid integer and within the range 0–65535.
-       Returns an empty string for valid ports or error_message for invalid ports.
+       Return a boolean whether the port is valid or not, and prints an error message accordingly.
     """
     try:
         # Convert the port to an integer
         port = int(port)
         # Check if it's within the valid range
-        if 0 <= port <= 65535:
-            return ""
-        else:
-            return "error: port number must be between 0 and 65535."
+        if not 0 <= port <= 65535:
+            print("error: port number must be between 0 and 65535.")
+            return False
+        return True
     except ValueError:
-        return "error: port number must be an integer."
+        print("error: port number must be an integer.")
+        return False
 
 def validate_int(num):
     """
@@ -120,25 +120,30 @@ def handle_calc_request(client_socket):
 
     elif user_request[:9] == "factors: ": # Prime factorization
         if not validate_int(user_request[9:]):
-            handle_error(client_socket, "error: one of the numbers isn't 32 integer")
+            handle_error(client_socket, "error: the number isn't 32 integer")
             exit(1)
         parsing_sender(client_socket, "f:"+user_request[9:])
         print( "the prime factors of " + user_request[9:] +
-               " are: " + recv_all_as_string(client_socket) + ".")
+               " are: " + recv_all_as_string(client_socket) + '.')
 
     elif user_request[:11] == "calculate: ":  # Arithmetic operations
         calc_data = user_request[11:].split(" ")
-        print(calc_data)
         if (not validate_int(calc_data[0]) or not validate_int(calc_data[2])
                 or (calc_data[1] == "/" and calc_data[2] == "0")
                 or not validate_op(calc_data[1])):
             handle_error(client_socket, "error: There is a problem with the input numbers")
             exit(1)
         parsing_sender(client_socket, "c:"+user_request[11:])
-        print( "response: " + recv_all_as_string(client_socket) + ".")
+        response = recv_all_as_string(client_socket)
+        if response[:7] == "error: ":
+            print(response)
+        else:
+            print( "response: " + response + ".")
 
     elif user_request == "quit":  # Quit command
         parsing_sender(client_socket, "q")
+        client_socket.close()
+        exit(1)
 
     else:
         handle_error(client_socket, "error: illegal command")
@@ -159,12 +164,9 @@ def start_client():
             print("error: invalid_hostname")
             exit(1)
         if len(sys.argv) == 3:
-            PORT = sys.argv[2]
+            PORT = int(sys.argv[2])
             if not validate_port(PORT):
-                print(validate_port(PORT))
                 exit(1)
-
-
 
     # Establish connection
     client_socket = socket(AF_INET, SOCK_STREAM)

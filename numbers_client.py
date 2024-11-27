@@ -138,7 +138,8 @@ def handle_calc_request(client_socket):
         if response[:7] == "error: ":
             print(response)
         else:
-            print( "response: " + recv_all_as_string(client_socket) + ".")
+            print( "response: " + response + ".")
+
 
     elif user_request == "quit":  # Quit command
         parsing_sender(client_socket, "q")

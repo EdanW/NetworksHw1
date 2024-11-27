@@ -97,8 +97,7 @@ def get_prime_factors(n):
 
     res = ""
     for fac in sorted(factors):
-        res += str(fac) + " "
-
+        res += str(fac) + ", "
     return  res[:-1]
 
 
@@ -172,21 +171,20 @@ def start_server():
         server_socket.bind((HOST, PORT))
         server_socket.listen()
 
-        # Step 5: Use lists to keep track of sockets
+        #Use lists to keep track of sockets
         sockets_list.append(server_socket) # List of all connected sockets
         print('server is up')
-        # Step 6: Main loop to handle multiple clients
+        #Main loop to handle multiple clients
         while True:
-            # Step 7: Use `select` to wait for socket events
+            # Use `select` to wait for socket events
             read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
 
-            # Step 8: Iterate over readable sockets
             for active_socket in read_sockets:
-                # Step 9: If it's the server socket, accept a new connection
+                # If it's the server socket, accept a new connection
                 if active_socket == server_socket:
                     accept_socket(server_socket)
 
-                # Step 10: Otherwise, it's an existing client socket with data
+                # otherwise, it's an existing client socket with data
                 else:
                     # gets the address of the active socket for dictionary searches
                     client_address = clients[active_socket]
@@ -200,12 +198,12 @@ def start_server():
                     if message_builder != "" and message_builder[-1] == "\t":
                         # ready for new command
                         clients_messages[client_address] = ""
-                        # Step 10.5 if you're not logged in, do so. if you don't i kick u
+                        # if you're not logged in, do so. if you don't i kick u
                         if active_socket not in logged_in_users_sockets_list:
                             handle_new_user(message_builder, active_socket, known_users_dict, logged_in_users_sockets_list)
                             continue
 
-                        # Step 13: you're logged in, so you probably sent us some command
+                        # you're logged in, so you probably sent us some command
                         else:
                             # handle this case first because it requires removing stuff from data structures
                             if message_builder == 'q\t':

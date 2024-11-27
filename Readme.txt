@@ -56,12 +56,12 @@ Supported Commands
 3. Find Maximum:
    - User need to write: max: <X1> <X2> ... <Xn>
    - Client sends: max: <X1> <X2> ... <Xn>\t
-   - Server Responds:: the maximum is: <result>.\t
+   - Server Responds:: the maximum is: <result>\t
 
 4. Find Prime Factors:
    - User need to write: factors: <X>
    - Client sends: factors: <X>\t
-   - Server Responds: the prime factors of <X> are: <p1>, <p2>, ..., <pn>.\t
+   - Server Responds: the prime factors of <X> are: <p1>, <p2>, ..., <pn>\t
 
 5. Disconnect:
    - User need to write: quit

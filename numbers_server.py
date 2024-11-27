@@ -98,7 +98,6 @@ def get_prime_factors(n):
     res = ""
     for fac in sorted(factors):
         res += str(fac) + ", "
-
     return  res[:-1]
 
 

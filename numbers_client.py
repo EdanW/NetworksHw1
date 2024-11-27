@@ -140,6 +140,7 @@ def handle_calc_request(client_socket):
         else:
             print( "response: " + response + ".")
 
+
     elif user_request == "quit":  # Quit command
         parsing_sender(client_socket, "q")
         client_socket.close()

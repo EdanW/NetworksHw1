@@ -116,7 +116,7 @@ def handle_calc_request(client_socket):
             handle_error(client_socket, "error: one of the numbers isn't 32 integer")
             exit(1)
         parsing_sender(client_socket,"m:"+user_request[5:])
-        print("the maximum is: " + recv_all_as_string(client_socket) +".")
+        print("the maximum is: " + recv_all_as_string(client_socket))
 
     elif user_request[:9] == "factors: ": # Prime factorization
         if not validate_int(user_request[9:]):
@@ -124,7 +124,7 @@ def handle_calc_request(client_socket):
             exit(1)
         parsing_sender(client_socket, "f:"+user_request[9:])
         print( "the prime factors of " + user_request[9:] +
-               " are: " + recv_all_as_string(client_socket) + '.')
+               " are: " + recv_all_as_string(client_socket))
 
     elif user_request[:11] == "calculate: ":  # Arithmetic operations
         calc_data = user_request[11:].split(" ")

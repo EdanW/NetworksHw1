@@ -98,7 +98,7 @@ def get_prime_factors(n):
     res = ""
     for fac in sorted(factors):
         res += str(fac) + ", "
-    return  res[:-1]
+    return  res[:-2]
 
 
 def process_file(file_name, users_dic):

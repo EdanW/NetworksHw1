@@ -138,7 +138,7 @@ def handle_calc_request(client_socket):
         if response[:7] == "error: ":
             print(response)
         else:
-            print( "response: " + response + ".")
+            print( "response: " + response)
 
 
     elif user_request == "quit":  # Quit command

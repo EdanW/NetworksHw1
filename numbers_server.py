@@ -98,7 +98,7 @@ def get_prime_factors(n):
     res = ""
     for fac in sorted(factors):
         res += str(fac) + ", "
-    return  res[:-1]
+    return  res[:-2]
 
 
 def process_file(file_name, users_dic):
@@ -169,6 +169,7 @@ def start_server():
     # creates new socket
     with socket(family=AF_INET, type=SOCK_STREAM) as server_socket:
         server_socket.bind((HOST, PORT))
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.listen()
 
         #Use lists to keep track of sockets
